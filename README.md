@@ -1,0 +1,2 @@
+# @vestibule-link/bridge
+* Bridge for vestibule ![Build Status](https://codebuild.us-east-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiTG1VUzV0eUxYWkxINkowOU9iQm90Nm13Q01RWVUyQjdydWNJVU5Cc2Y3TkVZRXVaUXlZa0h1ODU3YlIwTTFuU1FIWGRUNkNrMnU3TFJIdEVaTTIzL3AwPSIsIml2UGFyYW1ldGVyU3BlYyI6IlVrREpjT1o0bFY5SUx0V3YiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)
