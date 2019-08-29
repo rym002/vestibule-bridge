@@ -1,33 +1,42 @@
 import 'mocha';
-import { listenInit, registerModule } from '../src';
+import { registerModule, startModules } from '../src';
+import { expect } from 'chai'
+import { fakeLoaded } from './fakeModule'
 
 describe('Module Init', function () {
-    it('should execute the callback when the module loads after a listener is added', function (done) {
-        listenInit('testModule', async () => {
-            done();
+    it('should call init after all dependencies are loaded', async function () {
+        let childLoaded1 = false;
+        const childModule1 = registerModule({
+            name: 'childModule1',
+            init: async () => {
+                childLoaded1 = true
+            }
+        })
+        let childLoaded2 = false;
+        const childModule2 = registerModule({
+            name: 'childModule2',
+            init: async () => {
+                childLoaded2 = true
+            }
+        })
+        let testLoaded = new Promise((resolve, reject) => {
+            process.nextTick(() => {
+                expect(childLoaded1).to.be.true
+                expect(childLoaded2).to.be.true
+                resolve()
+            })
         })
         registerModule({
             name: 'testModule',
             init: async () => {
-                await new Promise((resolve, reject) => {
-                    process.nextTick(() => {
-                        resolve();
-                    })
-                })
-            }
+                await testLoaded
+            },
+            depends: [childModule1, childModule2]
         });
+        await testLoaded
     })
-    it('should execute the callback when the module has loaded already', function (done) {
-        registerModule({
-            name: 'testModule',
-            init: async () => {
-            }
-        }).then(() => {
-            listenInit('testModule', async () => {
-                process.nextTick(() => {
-                    done();
-                })
-            })
-        });
+    it('should start modules', async function () {
+        await startModules(['../test/fakeModule'])
+        expect(fakeLoaded).to.be.true
     })
 })

@@ -1,19 +1,19 @@
 import { EventEmitter } from "events";
 
 class InitEmitter extends EventEmitter {
-    private completedModules = new Set<string>();
+    private completedModules = new Set<symbol>();
     constructor() {
         super();
         this.on('error', this.errorHandler);
     }
-    completeModule(moduleName: string) {
-        this.completedModules.add(moduleName)
+    completeModule(moduleId: symbol) {
+        this.completedModules.add(moduleId)
     }
-    isComplete(moduleName: string): boolean {
-        return this.completedModules.has(moduleName)
+    isComplete(moduleId: symbol): boolean {
+        return this.completedModules.has(moduleId)
     }
     errorHandler(err: Error) {
-        console.log("Init Error", err)
+        console.error(err, err.stack)
     }
 }
 
@@ -22,25 +22,53 @@ const initEmitter = new InitEmitter();
 export interface VestibuleInit {
     name: string
     init: () => Promise<void>
+    depends?: symbol[]
 }
 
-export async function registerModule(moduleInit: VestibuleInit) {
-    try{
+async function initModule(moduleInit: VestibuleInit, moduleId: symbol) {
+    try {
         await moduleInit.init();
-        initEmitter.completeModule(moduleInit.name);
-        initEmitter.emit(moduleInit.name);    
-    }catch(err){
+        initEmitter.completeModule(moduleId);
+        initEmitter.emit(moduleId);
+    } catch (err) {
         initEmitter.errorHandler(err);
     }
+
+}
+export function registerModule(moduleInit: VestibuleInit): symbol {
+    const moduleId = Symbol(moduleInit.name);
+    if (moduleInit.depends) {
+        moduleInit.depends = moduleInit.depends.filter(dependId => {
+            return !initEmitter.isComplete(dependId)
+        })
+    }
+
+    if (moduleInit.depends && moduleInit.depends.length) {
+        moduleInit.depends.forEach(dependId => {
+            initEmitter.once(dependId, async () => {
+                const moduleDepends = moduleInit.depends;
+                if (moduleDepends) {
+                    moduleDepends.splice(moduleDepends.indexOf(dependId), 1)
+                    if (!moduleDepends.length) {
+                        await initModule(moduleInit, moduleId)
+                    }
+                }
+            })
+        })
+    } else {
+        initModule(moduleInit, moduleId)
+    }
+    return moduleId
 }
 
-export function listenInit(moduleName: string, callback: () => Promise<void>) {
-    if (initEmitter.isComplete(moduleName)) {
-        callback()
-            .catch(err => {
-                initEmitter.errorHandler(err);
-            });
-    } else {
-        initEmitter.once(moduleName, callback);
-    }
+export async function startModules(modules: string[]) {
+    const imports = modules.map(async modulePath => {
+        const importedModule = await import(modulePath)
+        if (importedModule.startModule){
+            importedModule.startModule()
+        }else{
+            throw new Error('Module ' + modulePath + ' missing exported startModule function')
+        }
+    })
+    await Promise.all(imports)
 }
