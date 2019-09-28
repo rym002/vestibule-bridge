@@ -27,10 +27,13 @@ export interface VestibuleInit {
 
 async function initModule(moduleInit: VestibuleInit, moduleId: symbol) {
     try {
+        console.log('Init Module %s Started', moduleInit.name)
         await moduleInit.init();
         initEmitter.completeModule(moduleId);
         initEmitter.emit(moduleId);
+        console.log('Init Module %s Complete', moduleInit.name)
     } catch (err) {
+        console.error('Init Module %s Error %O', moduleInit.name, err)
         initEmitter.errorHandler(err);
     }
 
@@ -64,9 +67,9 @@ export function registerModule(moduleInit: VestibuleInit): symbol {
 export async function startModules(modules: string[]) {
     const imports = modules.map(async modulePath => {
         const importedModule = await import(modulePath)
-        if (importedModule.startModule){
+        if (importedModule.startModule) {
             importedModule.startModule()
-        }else{
+        } else {
             throw new Error('Module ' + modulePath + ' missing exported startModule function')
         }
     })
