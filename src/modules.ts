@@ -1,5 +1,6 @@
 import { EventEmitter } from "events";
 
+
 class InitEmitter extends EventEmitter {
     private completedModules = new Set<symbol>();
     constructor() {
@@ -74,4 +75,12 @@ export async function startModules(modules: string[]) {
         }
     })
     await Promise.all(imports)
+}
+
+export async function initBridge() {
+    const modulesConfig = process.env['VESTIBULE_MODULES'] || ''
+    const modules = modulesConfig.split(',')
+        .map(moduleName => moduleName.trim())
+    console.log('Starting modules: %o', modules)
+    await startModules(modules)
 }
